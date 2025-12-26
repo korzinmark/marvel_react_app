@@ -9,22 +9,48 @@ class CharList extends Component {
         charList: [],
         loading: true,
         error: false,
-        selectedCharId: null
+        selectedCharId: null,
+        newItemLoading: false,
+        offset: 0,
+        charEnded: false
     }
     
     marvelService = new MarvelService();
+    initialLoaded = false;
 
     componentDidMount() {
-        this.marvelService.getAllCharacters()
+        if (!this.initialLoaded) {
+            this.initialLoaded = true;
+            this.onRequest();
+        }
+    }
+
+    onRequest = (offset) => {
+        this.onCharListLoading()
+        this.marvelService.getAllCharacters(offset)
             .then(this.onCharListLoaded)
             .catch(this.onError)
     }
 
-    onCharListLoaded = (charList) => {
+    onCharListLoading = () => {
         this.setState({
-            charList,
-            loading: false
+            newItemLoading: true
         })
+    }
+
+    onCharListLoaded = (newCharList) => {
+        let ended = false
+        if (newCharList.length < 9) {
+            ended = true
+        }
+
+        this.setState(({charList, offset}) => ({
+            charList: [...charList, ...newCharList],
+            loading: false,
+            newItemLoading: false,
+            offset: offset + 9,
+            charEnded: ended
+        }))
     }
 
     onError = () => {
@@ -69,7 +95,7 @@ class CharList extends Component {
     }
 
     render() {
-        const {charList, loading, error} = this.state;
+        const {charList, loading, error, newItemLoading, offset, charEnded} = this.state;
         
         const items = this.renderItems(charList);
 
@@ -82,7 +108,10 @@ class CharList extends Component {
                 {errorMessage}
                 {spinner}
                 {content}
-                <button className="button button__main button__long">
+                <button onClick={() => this.onRequest(offset)}
+                        disabled={newItemLoading}
+                        style={{ 'display': charEnded ? 'none' : 'block' }}
+                        className="button button__main button__long">
                     <div className="inner">load more</div>
                 </button>
             </div>
