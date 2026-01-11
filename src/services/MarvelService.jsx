@@ -1,28 +1,27 @@
-class MarvelService {
-    _apiBase = 'https://marvel-server-zeta.vercel.app/'
-    _apiKey = 'apikey=d4eecb0c66dedbfae4eab45d312fc1df'
+import useHttp from "../hooks/http.hook"
 
-    getResource = async (url) => {
-        const res = await fetch(url)
+function useMarvelService() {
+    const {loading, request, error, clearError} = useHttp()
 
-        if (!res.ok) {
-            throw new Error(`Could not fetch ${url}, status: ${res.status}`)
-        }
+    const _apiBase = '/api'
+    const _apiKey = 'apikey=d4eecb0c66dedbfae4eab45d312fc1df'
 
-        return await res.json()
+    const getAllCharacters = async (offset = 0) => {
+        const res = await request(`${_apiBase}characters?limit=9&offset=${offset}&${_apiKey}`)
+        return res.data.results.map(_transformCharacter)
     }
 
-    getAllCharacters = async (offset = 0) => {
-        const res = await this.getResource(`${this._apiBase}characters?limit=9&offset=${offset}&${this._apiKey}`)
-        return res.data.results.map(this._transformCharacter)
+    const getCharacter = async (id) => {
+        const res = await request(`${_apiBase}characters/${id}/?${_apiKey}`)
+        return _transformCharacter(res.data.results[0])
     }
 
-    getCharacter = async (id) => {
-        const res = await this.getResource(`${this._apiBase}characters/${id}/?${this._apiKey}`)
-        return this._transformCharacter(res.data.results[0])
+    const getAllComics = async (offset = 0) => {
+        const res = await request(`${_apiBase}comics?limit=8&offset=${offset}&${_apiKey}`)
+        return res.data.results.map(_transformComics)
     }
 
-    _transformCharacter = (char) => {
+    const _transformCharacter = (char) => {
         return {
             id: char.id,
             name: char.name,
@@ -33,6 +32,19 @@ class MarvelService {
             comics: char.comics.items
         }
     }
+
+    const _transformComics = (comic) => {
+        return {
+            id: comic.id,
+            title: comic.title,
+            description: comic.description ? `${comic.description.slice(0, 250)}...` : 'There is no description for this comic',
+            thumbnail: `${comic.thumbnail.path}.${comic.thumbnail.extension}`,
+            lang: comic.textObjects.languages,
+            price: comic.prices[0].price
+        }
+    }
+
+    return {loading, error, clearError, getAllCharacters, getCharacter, getAllComics}
 }
 
-export default MarvelService
+export default useMarvelService
